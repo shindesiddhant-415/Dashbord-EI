@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Game Sales Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0b0c10;
+    --surface: #13151c;
+    --surface2: #1c1f2e;
+    --border: #252840;
+    --accent1: #00f5c4;
+    --accent2: #ff4c6e;
+    --accent3: #ffc842;
+    --accent4: #7b6cff;
+    --text: #e8eaf0;
+    --muted: #6b7294;
+    --na: #00d4ff;
+    --eu: #00f5c4;
+    --jp: #ff4c6e;
+    --other: #ffc842;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #0b0c10 0%, #13151c 50%, #1a1040 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent4));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+
+  .nav-tab:hover { color: var(--text); border-color: var(--border); }
+  .nav-tab.active {
+    background: var(--accent1);
+    color: #000;
+    font-weight: 700;
+  }
+
+  .header-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: flex;
+    height: calc(100vh - 64px);
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .filter-group label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .filter-group select, .filter-group input[type=range] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .filter-group select:focus { border-color: var(--accent1); }
+
+  .range-display {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent1);
+    margin-top: 4px;
+  }
+
+  .region-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .region-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  .region-check input { accent-color: var(--accent1); width: 14px; height: 14px; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .topn-btns {
+    display: flex;
+    gap: 4px;
+  }
+
+  .topn-btn {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .topn-btn.active { background: var(--accent4); color: #fff; border-color: var(--accent4); }
+
+  .reset-btn {
+    width: 100%;
+    padding: 9px;
+    border-radius: 6px;
+    border: 1px solid var(--accent2);
+    background: transparent;
+    color: var(--accent2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover { background: var(--accent2); color: #fff; }
+
+  .sidebar-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2px 0;
+  }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Dashboard pages */
+  .dashboard-page { display: none; flex-direction: column; gap: 16px; }
+  .dashboard-page.active { display: flex; }
+
+  /* ── CARDS ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi.k1::before { background: var(--accent1); }
+  .kpi.k2::before { background: var(--accent2); }
+  .kpi.k3::before { background: var(--accent3); }
+  .kpi.k4::before { background: var(--accent4); }
+
+  .kpi-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .kpi.k1 .kpi-value { color: var(--accent1); }
+  .kpi.k2 .kpi-value { color: var(--accent2); }
+  .kpi.k3 .kpi-value { color: var(--accent3); }
+  .kpi.k4 .kpi-value { color: var(--accent4); }
+
+  .kpi-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  /* chart cards */
+  .chart-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    color: var(--text);
+  }
+
+  .card-grain {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent4);
+    background: rgba(123,108,255,0.12);
+    padding: 2px 7px;
+    border-radius: 20px;
+    border: 1px solid rgba(123,108,255,0.3);
+  }
+
+  .chart-wrap { position: relative; }
+
+  /* Heatmap */
+  .heatmap-grid {
+    display: grid;
+    gap: 3px;
+  }
+
+  .heatmap-cell {
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: rgba(0,0,0,0.8);
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .heatmap-cell:hover { transform: scale(1.1); z-index: 5; }
+
+  .heatmap-labels-row {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 4px;
+    font-size: 0.6rem;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  .heatmap-row-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+  }
+
+  /* Treemap */
+  .treemap-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    height: 220px;
+    align-content: flex-start;
+  }
+
+  .treemap-cell {
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    overflow: hidden;
+    padding: 4px;
+  }
+
+  .treemap-cell:hover { opacity: 0.8; }
+  .treemap-name { font-size: 0.65rem; font-weight: 700; color: rgba(0,0,0,0.85); text-align: center; line-height: 1.2; }
+  .treemap-val { font-size: 0.6rem; color: rgba(0,0,0,0.65); margin-top: 2px; }
+
+  /* Tooltip */
+  #tooltip {
+    position: fixed;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 999;
+    max-width: 220px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  #tooltip.show { opacity: 1; }
+  .tt-title { font-weight: 700; color: var(--accent1); margin-bottom: 6px; font-size: 0.8rem; }
+  .tt-row { display: flex; justify-content: space-between; gap: 16px; margin-top: 3px; }
+  .tt-key { color: var(--muted); }
+  .tt-val { color: var(--text); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+
+  /* Drill-down breadcrumb */
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .breadcrumb span { color: var(--accent3); cursor: pointer; }
+  .breadcrumb span:hover { text-decoration: underline; }
+  .bc-sep { color: var(--border); }
+
+  /* Stacked legend */
+  .legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    font-size: 0.72rem;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .full-width { grid-column: 1 / -1; }
+
+  canvas { max-height: 240px; }
+  .canvas-tall { max-height: 320px !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎮 VG Sales Analytics</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchPage('overview')">Overview</button>
+    <button class="nav-tab" onclick="switchPage('regional')">Regional Analysis</button>
+    <button class="nav-tab" onclick="switchPage('publisher')">Publisher Analysis</button>
+    <button class="nav-tab" onclick="switchPage('trend')">Trend Analysis</button>
+  </div>
+  <div class="header-meta">Dataset: VGChartz · 16,500+ Games</div>
+</header>
+
+<div class="shell">
+
+<!-- ── SIDEBAR ── -->
+<aside>
+  <div class="filter-group">
+    <label>Year Range</label>
+    <input type="range" id="yearMin" min="1980" max="2016" value="1980" step="1" oninput="applyFilters()">
+    <input type="range" id="yearMax" min="1980" max="2016" value="2016" step="1" oninput="applyFilters()">
+    <div class="range-display">
+      <span id="yearMinLabel">1980</span>
+      <span id="yearMaxLabel">2016</span>
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <div class="filter-group">
+    <label>Platform</label>
+    <select id="platformFilter" onchange="applyFilters()">
+      <option value="All">All Platforms</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Genre</label>
+    <select id="genreFilter" onchange="applyFilters()">
+      <option value="All">All Genres</option>
+    </select>
+  </div>
+
+  <div class="filter-group">
+    <label>Publisher</label>
+    <select id="publisherFilter" onchange="applyFilters()">
+      <option value="All">All Publishers</option>
+    </select>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <div class="filter-group">
+    <label>Regions</label>
+    <div class="region-checks">
+      <label class="region-check"><input type="checkbox" checked value="NA" onchange="applyFilters()"><div class="dot" style="background:var(--na)"></div>North America</label>
+      <label class="region-check"><input type="checkbox" checked value="EU" onchange="applyFilters()"><div class="dot" style="background:var(--eu)"></div>Europe</label>
+      <label class="region-check"><input type="checkbox" checked value="JP" onchange="applyFilters()"><div class="dot" style="background:var(--jp)"></div>Japan</label>
+      <label class="region-check"><input type="checkbox" checked value="Other" onchange="applyFilters()"><div class="dot" style="background:var(--other)"></div>Other</label>
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <div class="filter-group">
+    <label>Top N Games</label>
+    <div class="topn-btns">
+      <button class="topn-btn" onclick="setTopN(5,this)">Top 5</button>
+      <button class="topn-btn active" onclick="setTopN(10,this)">Top 10</button>
+      <button class="topn-btn" onclick="setTopN(20,this)">Top 20</button>
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <div class="filter-group">
+    <label>Sales View</label>
+    <div class="topn-btns">
+      <button class="topn-btn active" onclick="setSalesView('global',this)">Global</button>
+      <button class="topn-btn" onclick="setSalesView('regional',this)">Regional</button>
+    </div>
+  </div>
+
+  <hr class="sidebar-divider">
+
+  <button class="reset-btn" onclick="resetFilters()">↺ Reset All Filters</button>
+</aside>
+
+<!-- ── MAIN CONTENT ── -->
+<main>
+
+  <!-- ===== PAGE 1: OVERVIEW ===== -->
+  <div id="page-overview" class="dashboard-page active">
+    <div class="kpi-row">
+      <div class="kpi k1">
+        <div class="kpi-label">Total Global Sales</div>
+        <div class="kpi-value" id="kpi-global">8,920M</div>
+        <div class="kpi-sub">Million units worldwide</div>
+      </div>
+      <div class="kpi k2">
+        <div class="kpi-label">Total Games</div>
+        <div class="kpi-value" id="kpi-games">16,598</div>
+        <div class="kpi-sub">Unique titles</div>
+      </div>
+      <div class="kpi k3">
+        <div class="kpi-label">Publishers</div>
+        <div class="kpi-value" id="kpi-pubs">578</div>
+        <div class="kpi-sub">Unique publishers</div>
+      </div>
+      <div class="kpi k4">
+        <div class="kpi-label">Platforms</div>
+        <div class="kpi-value" id="kpi-plats">31</div>
+        <div class="kpi-sub">Gaming platforms</div>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <!-- G1: Genre vs Global Sales -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Genre vs Global Sales</div>
+          <div class="card-grain">Grain #1</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-genre"></canvas></div>
+      </div>
+
+      <!-- G2: Platform vs Global Sales -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Platform Global Sales</div>
+          <div class="card-grain">Grain #2</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-platform"></canvas></div>
+      </div>
+    </div>
+
+    <!-- G5: Top 10 Games -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top <span id="topn-display">10</span> Best-Selling Games Worldwide</div>
+        <div class="card-grain">Grain #5</div>
+      </div>
+      <div class="chart-wrap"><canvas id="c-top10" class="canvas-tall"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 2: REGIONAL ANALYSIS ===== -->
+  <div id="page-regional" class="dashboard-page">
+    <div class="chart-grid-2">
+      <!-- G4: Regional Sales Comparison -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Regional Sales Share</div>
+          <div class="card-grain">Grain #4</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-region-pie"></canvas></div>
+        <div class="legend" id="region-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--na)"></div>North America</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--eu)"></div>Europe</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--jp)"></div>Japan</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--other)"></div>Other</div>
+        </div>
+      </div>
+
+      <!-- G9: Platform by Region -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Platform Sales by Region</div>
+          <div class="card-grain">Grain #9</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-plat-region"></canvas></div>
+      </div>
+    </div>
+
+    <!-- G7: Genre vs Region Heatmap -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Genre × Region Sales Heatmap</div>
+        <div class="card-grain">Grain #7</div>
+      </div>
+      <div id="heatmap-container"></div>
+      <div class="legend" style="margin-top:10px">
+        <span style="font-size:0.68rem;color:var(--muted)">Intensity = Sales (M units) — darker = higher</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 3: PUBLISHER ANALYSIS ===== -->
+  <div id="page-publisher" class="dashboard-page">
+    <!-- G6: Publisher Treemap -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Publisher Performance Treemap</div>
+        <div class="card-grain">Grain #6</div>
+      </div>
+      <div id="treemap-container" class="treemap-container"></div>
+    </div>
+
+    <!-- G4 stacked by publisher -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Top Publisher Regional Breakdown</div>
+        <div class="card-grain">Grain #4 + #6</div>
+      </div>
+      <div class="chart-wrap"><canvas id="c-pub-region" class="canvas-tall"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE 4: TREND ANALYSIS ===== -->
+  <div id="page-trend" class="dashboard-page">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Global Sales Trend Over Years</div>
+        <div class="card-grain">Grain #3</div>
+      </div>
+      <div class="breadcrumb" id="drill-breadcrumb">
+        <span onclick="drillTo('year')">All Years</span>
+      </div>
+      <div class="chart-wrap"><canvas id="c-trend" class="canvas-tall"></canvas></div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:6px">💡 Click a year bar to drill down by platform → game</div>
+    </div>
+
+    <div class="chart-grid-2">
+      <!-- G8: Games per Year -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Number of Games Released per Year</div>
+          <div class="card-grain">Grain #8</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-games-year"></canvas></div>
+      </div>
+
+      <!-- G10: Platform Age vs Sales Area -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Platform Era Sales (Area Chart)</div>
+          <div class="card-grain">Grain #10</div>
+        </div>
+        <div class="chart-wrap"><canvas id="c-platform-era"></canvas></div>
+        <div class="legend" id="era-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#ff4c6e88"></div>Classic (≤1994)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ffc84288"></div>Mid (1995-2004)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#00f5c488"></div>Modern (2005+)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip">
+  <div class="tt-title" id="tt-name">Game Name</div>
+  <div class="tt-row"><span class="tt-key">Platform</span><span class="tt-val" id="tt-platform">—</span></div>
+  <div class="tt-row"><span class="tt-key">Genre</span><span class="tt-val" id="tt-genre">—</span></div>
+  <div class="tt-row"><span class="tt-key">Year</span><span class="tt-val" id="tt-year">—</span></div>
+  <div class="tt-row"><span class="tt-key">Global Sales</span><span class="tt-val" id="tt-sales">—</span></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+
+const GENRES = ['Action','Sports','Shooter','Role-Playing','Platform','Racing','Fighting','Simulation','Puzzle','Adventure','Misc','Strategy'];
+const PLATFORMS = ['PS2','PS3','PS4','X360','XOne','Wii','WiiU','NES','SNES','GB','GBA','DS','3DS','PSP','PS','N64','GC','PC','DC','SAT'];
+const PUBLISHERS = ['Nintendo','EA','Activision','Sony','Ubisoft','Take-Two','THQ','Konami','Sega','Capcom','Square Enix','Namco','Atari','Warner Bros','Disney','2K','Bandai','Eidos','Bethesda','Valve'];
+
+// Genre sales (M) - realistic approximate totals
+const genreSales = {
+  'Action':1722,'Sports':1322,'Shooter':1026,'Role-Playing':926,'Platform':827,
+  'Racing':726,'Fighting':448,'Simulation':391,'Puzzle':244,'Adventure':238,'Misc':790,'Strategy':175
+};
+
+// Platform sales
+const platformSales = {
+  'PS2':1255,'X360':979,'PS3':957,'Wii':926,'DS':822,'PS':728,'GBA':319,
+  'PS4':315,'3DS':261,'N64':218,'SNES':190,'GC':197,'XOne':130,'PC':260,
+  'GB':255,'NES':251,'PSP':296,'WiiU':82,'DC':47,'SAT':31
+};
+
+// Year data
+const years = Array.from({length:37},(_,i)=>1980+i);
+const yearSales = {
+  1980:11,1981:19,1982:28,1983:17,1984:21,1985:32,1986:45,1987:56,1988:73,1989:87,
+  1990:102,1991:118,1992:139,1993:156,1994:171,1995:203,1996:231,1997:258,1998:295,1999:338,
+  2000:371,2001:382,2002:411,2003:437,2004:468,2005:503,2006:551,2007:584,2008:612,2009:648,
+  2010:607,2011:576,2012:528,2013:489,2014:412,2015:361,2016:278
+};
+const yearGames = {
+  1980:9,1981:14,1982:22,1983:31,1984:38,1985:45,1986:62,1987:74,1988:89,1989:103,
+  1990:118,1991:145,1992:178,1993:213,1994:268,1995:345,1996:421,1997:513,1998:602,1999:689,
+  2000:741,2001:788,2002:823,2003:867,2004:903,2005:942,2006:1014,2007:1181,2008:1428,2009:1431,
+  2010:1258,2011:1136,2012:657,2013:511,2014:380,2015:271,2016:144
+};
+
+// Regional
+const regionTotals = { NA: 4392, EU: 2435, JP: 1292, Other: 798 };
+
+// Genre x Region heatmap
+const genreRegionData = {
+  'Action':    {NA:856,EU:521,JP:189,Other:156},
+  'Sports':    {NA:683,EU:376,JP:98, Other:165},
+  'Shooter':   {NA:577,EU:282,JP:61, Other:106},
+  'Role-Playing':{NA:341,EU:186,JP:352,Other:47},
+  'Platform':  {NA:447,EU:198,JP:147,Other:35},
+  'Racing':    {NA:312,EU:289,JP:82, Other:43},
+  'Fighting':  {NA:218,EU:134,JP:72, Other:24},
+  'Simulation':{NA:189,EU:132,JP:38, Other:32},
+  'Puzzle':    {NA:109,EU:67, JP:52, Other:16},
+  'Adventure': {NA:112,EU:74, JP:37, Other:15},
+  'Misc':      {NA:388,EU:167,JP:165,Other:70},
+  'Strategy':  {NA:77, EU:56, JP:30, Other:12},
+};
+
+// Top games
+const topGames = [
+  {name:'Wii Sports',platform:'Wii',genre:'Sports',year:2006,global:82.74,na:41.49,eu:29.02,jp:3.77,other:8.46},
+  {name:'Super Mario Bros.',platform:'NES',genre:'Platform',year:1985,global:40.24,na:29.08,eu:3.58,jp:6.81,other:0.77},
+  {name:'Mario Kart Wii',platform:'Wii',genre:'Racing',year:2008,global:35.82,na:15.85,eu:12.88,jp:3.79,other:3.3},
+  {name:'Wii Sports Resort',platform:'Wii',genre:'Sports',year:2009,global:33.00,na:15.75,eu:11.01,jp:3.28,other:2.96},
+  {name:'Pokemon R/B/Y',platform:'GB',genre:'Role-Playing',year:1996,global:31.37,na:11.27,eu:8.89,jp:10.22,other:1.0},
+  {name:'Tetris',platform:'GB',genre:'Puzzle',year:1989,global:30.26,na:23.2,eu:2.26,jp:4.22,other:0.58},
+  {name:'New Super Mario Bros.',platform:'DS',genre:'Platform',year:2006,global:30.01,na:11.38,eu:9.23,jp:6.5,other:2.9},
+  {name:'Wii Play',platform:'Wii',genre:'Misc',year:2006,global:29.02,na:14.03,eu:9.2,jp:2.93,other:2.86},
+  {name:'New Super Mario Bros. Wii',platform:'Wii',genre:'Platform',year:2009,global:28.62,na:14.59,eu:6.93,jp:4.7,other:2.4},
+  {name:'Duck Hunt',platform:'NES',genre:'Shooter',year:1984,global:28.31,na:26.93,eu:0.63,jp:0.28,other:0.47},
+  {name:'Kinect Adventures!',platform:'X360',genre:'Misc',year:2010,global:21.82,na:15.0,eu:4.89,jp:0.24,other:1.69},
+  {name:'Grand Theft Auto V',platform:'PS3',genre:'Action',year:2013,global:21.4,na:9.63,eu:6.42,jp:0.97,other:4.38},
+  {name:'Grand Theft Auto: SA',platform:'PS2',genre:'Action',year:2004,global:20.81,na:9.43,eu:0.4,jp:0.41,other:10.57},
+  {name:'Super Mario World',platform:'SNES',genre:'Platform',year:1990,global:20.61,na:12.78,eu:3.75,jp:3.54,other:0.54},
+  {name:'Brain Age',platform:'DS',genre:'Misc',year:2005,global:19.01,na:4.75,eu:4.74,jp:8.48,other:1.04},
+  {name:'Pokemon Gold/Silver',platform:'GB',genre:'Role-Playing',year:1999,global:23.10,na:9.0,eu:6.18,jp:7.2,other:0.72},
+  {name:'Wii Fit',platform:'Wii',genre:'Sports',year:2007,global:22.72,na:8.94,eu:8.03,jp:3.6,other:2.15},
+  {name:'Nintendogs',platform:'DS',genre:'Simulation',year:2005,global:24.76,na:9.61,eu:7.05,jp:5.53,other:2.57},
+  {name:'Mario Kart DS',platform:'DS',genre:'Racing',year:2005,global:23.42,na:9.81,eu:7.57,jp:4.73,other:1.31},
+  {name:'Super Mario 64',platform:'N64',genre:'Platform',year:1996,global:11.89,na:6.91,eu:1.81,jp:2.82,other:0.35},
+];
+
+// Publisher sales
+const publisherSales = {
+  'Nintendo':1786,'EA':1110,'Activision':727,'Sony':608,'Ubisoft':474,
+  'Take-Two':400,'THQ':340,'Konami':283,'Sega':272,'Capcom':202,
+  'Square Enix':183,'Namco':154,'Atari':112,'Warner Bros':108,'2K':98,
+  'Bandai':89,'Disney':82,'Eidos':71,'Bethesda':58,'Valve':31
+};
+
+// Platform by region (top 8)
+const platByRegion = {
+  'PS2': {NA:583,EU:339,JP:218,Other:115},
+  'X360':{NA:603,EU:261,JP:22, Other:93},
+  'Wii': {NA:497,EU:260,JP:98, Other:71},
+  'PS3': {NA:393,EU:349,JP:122,Other:93},
+  'DS':  {NA:345,EU:213,JP:175,Other:89},
+  'PS':  {NA:299,EU:244,JP:139,Other:46},
+  'GBA': {NA:158,EU:87, JP:59, Other:15},
+  'PS4': {NA:135,EU:114,JP:36, Other:30},
+};
+
+// Era data
+const eraSales = {
+  classic:[0,3,6,5,4,8,14,21,31,39,41,47,55,62,68,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  mid:    [0,0,0,0,0,0,0,0,0,0,14,22,36,51,67,89,112,148,184,221,248,262,278,291,308,0,0,0,0,0,0,0,0,0,0,0,0],
+  modern: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,254,328,381,402,438,421,392,361,318,281,241,178],
+};
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let topN = 10;
+let salesView = 'global';
+let charts = {};
+let drillLevel = 'year';
+let drillYear = null;
+let drillPlatform = null;
+
+// ══════════════════════════════════════════
+// INIT FILTERS
+// ══════════════════════════════════════════
+function initFilters() {
+  const pf = document.getElementById('platformFilter');
+  PLATFORMS.forEach(p => { const o=document.createElement('option'); o.value=o.textContent=p; pf.appendChild(o); });
+  const gf = document.getElementById('genreFilter');
+  GENRES.forEach(g => { const o=document.createElement('option'); o.value=o.textContent=g; gf.appendChild(o); });
+  const pubf = document.getElementById('publisherFilter');
+  PUBLISHERS.forEach(p => { const o=document.createElement('option'); o.value=o.textContent=p; pubf.appendChild(o); });
+}
+
+// ══════════════════════════════════════════
+// CHART HELPERS
+// ══════════════════════════════════════════
+const COLORS = ['#00f5c4','#7b6cff','#ff4c6e','#ffc842','#00d4ff','#ff8c42','#c4ff6c','#ff6cba','#6cbaff','#a0ff6c','#ff6c6c','#6cffba'];
+const cs = getComputedStyle(document.documentElement);
+
+function mkChart(id, type, data, opts={}) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  if (charts[id]) { charts[id].destroy(); }
+  const defaults = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: {} }
+    },
+    scales: {}
+  };
+  charts[id] = new Chart(ctx, { type, data, options: deepMerge(defaults, opts) });
+  return charts[id];
+}
+
+function deepMerge(t, s) {
+  const out = Object.assign({}, t);
+  for (const k in s) {
+    if (s[k] && typeof s[k]==='object' && !Array.isArray(s[k])) out[k] = deepMerge(t[k]||{}, s[k]);
+    else out[k] = s[k];
+  }
+  return out;
+}
+
+const gridOpts = {
+  scales: {
+    x: { grid: { color: '#252840' }, ticks: { color: '#6b7294', font: { size: 10 } } },
+    y: { grid: { color: '#252840' }, ticks: { color: '#6b7294', font: { size: 10 } } }
+  }
+};
+
+// ══════════════════════════════════════════
+// BUILD ALL CHARTS
+// ══════════════════════════════════════════
+function buildAll() {
+  buildGenreChart();
+  buildPlatformChart();
+  buildTop10Chart();
+  buildRegionPie();
+  buildPlatRegionChart();
+  buildHeatmap();
+  buildTreemap();
+  buildPubRegionChart();
+  buildTrendChart();
+  buildGamesPerYear();
+  buildPlatformEra();
+}
+
+// G1 - Genre Bar
+function buildGenreChart() {
+  const sorted = Object.entries(genreSales).sort((a,b)=>b[1]-a[1]);
+  mkChart('c-genre','bar',{
+    labels: sorted.map(x=>x[0]),
+    datasets:[{
+      data: sorted.map(x=>x[1]),
+      backgroundColor: COLORS,
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },{
+    ...gridOpts,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw}M units`}} }
+  });
+}
+
+// G2 - Platform horizontal bar
+function buildPlatformChart() {
+  const sorted = Object.entries(platformSales).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  mkChart('c-platform','bar',{
+    labels: sorted.map(x=>x[0]),
+    datasets:[{
+      data: sorted.map(x=>x[1]),
+      backgroundColor: COLORS,
+      borderRadius: 4,
+      borderSkipped: false,
+    }]
+  },{
+    indexAxis:'y',
+    ...gridOpts,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>`${ctx.raw}M units`}} }
+  });
+}
+
+// G5 - Top N games
+function buildTop10Chart() {
+  document.getElementById('topn-display').textContent = topN;
+  const games = topGames.sort((a,b)=>b.global-a.global).slice(0, topN);
+  const vals = salesView==='global' ? games.map(g=>g.global) :
+    games.flatMap ? undefined : games.map(g=>g.na+g.eu+g.jp+g.other);
+
+  if (salesView==='regional') {
+    mkChart('c-top10','bar',{
+      labels: games.map(g=>g.name.length>22?g.name.slice(0,20)+'…':g.name),
+      datasets:[
+        {label:'NA',data:games.map(g=>g.na),backgroundColor:'#00d4ff99',borderRadius:3,stack:'s'},
+        {label:'EU',data:games.map(g=>g.eu),backgroundColor:'#00f5c499',borderRadius:3,stack:'s'},
+        {label:'JP',data:games.map(g=>g.jp),backgroundColor:'#ff4c6e99',borderRadius:3,stack:'s'},
+        {label:'Other',data:games.map(g=>g.other),backgroundColor:'#ffc84299',borderRadius:3,stack:'s'},
+      ]
+    },{
+      indexAxis:'y',...gridOpts,
+      plugins:{legend:{display:true,labels:{color:'#6b7294',font:{size:10}}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}M`}}}
+    });
+  } else {
+    const colors = games.map((_,i)=>`hsl(${160+i*12},80%,55%)`);
+    mkChart('c-top10','bar',{
+      labels: games.map(g=>g.name.length>22?g.name.slice(0,20)+'…':g.name),
+      datasets:[{data:games.map(g=>g.global),backgroundColor:colors,borderRadius:4,borderSkipped:false}]
+    },{
+      indexAxis:'y',...gridOpts,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}M units`}}}
+    });
+  }
+}
+
+// G4 - Doughnut
+function buildRegionPie() {
+  const regions = ['NA','EU','JP','Other'];
+  const checks = document.querySelectorAll('.region-check input');
+  const enabled = Array.from(checks).filter(c=>c.checked).map(c=>c.value);
+  const vals = regions.filter(r=>enabled.includes(r)).map(r=>regionTotals[r]);
+  const labels = regions.filter(r=>enabled.includes(r));
+  mkChart('c-region-pie','doughnut',{
+    labels,
+    datasets:[{
+      data: vals,
+      backgroundColor:['#00d4ff','#00f5c4','#ff4c6e','#ffc842'],
+      borderColor:'#13151c', borderWidth:3
+    }]
+  },{
+    plugins:{
+      legend:{display:true,position:'bottom',labels:{color:'#6b7294',font:{size:10},boxWidth:10}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${ctx.raw}M (${(ctx.raw/vals.reduce((a,b)=>a+b,0)*100).toFixed(1)}%)`}}
+    }
+  });
+}
+
+// G9 - Stacked platform by region
+function buildPlatRegionChart() {
+  const plats = Object.keys(platByRegion);
+  const regions = [['NA','#00d4ff'],['EU','#00f5c4'],['JP','#ff4c6e'],['Other','#ffc842']];
+  mkChart('c-plat-region','bar',{
+    labels: plats,
+    datasets: regions.map(([r,c])=>({
+      label:r, data:plats.map(p=>platByRegion[p][r]),
+      backgroundColor:c+'99', borderRadius:2, stack:'s'
+    }))
+  },{
+    ...gridOpts,
+    plugins:{legend:{display:true,labels:{color:'#6b7294',font:{size:10},boxWidth:10}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}M`}}}
+  });
+}
+
+// G7 - Heatmap
+function buildHeatmap() {
+  const container = document.getElementById('heatmap-container');
+  container.innerHTML = '';
+  const regions = ['NA','EU','JP','Other'];
+  const colW = 56;
+
+  // Header row
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;gap:3px;margin-bottom:4px;margin-left:84px;';
+  regions.forEach(r=>{
+    const d = document.createElement('div');
+    d.style.cssText = `width:${colW}px;text-align:center;font-size:0.62rem;font-weight:700;color:#6b7294;`;
+    d.textContent = r;
+    header.appendChild(d);
+  });
+  container.appendChild(header);
+
+  // Find max for color scaling
+  const allVals = GENRES.flatMap(g=>regions.map(r=>genreRegionData[g][r]));
+  const maxVal = Math.max(...allVals);
+
+  GENRES.forEach(genre=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:3px;margin-bottom:3px;';
+
+    const lbl = document.createElement('div');
+    lbl.style.cssText = `width:80px;font-size:0.62rem;color:#6b7294;font-weight:500;text-align:right;padding-right:4px;`;
+    lbl.textContent = genre;
+    row.appendChild(lbl);
+
+    regions.forEach(r=>{
+      const val = genreRegionData[genre][r];
+      const intensity = val/maxVal;
+      const cell = document.createElement('div');
+      cell.style.cssText = `width:${colW}px;height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-weight:700;cursor:pointer;transition:transform 0.1s;`;
+      const h = r==='NA'?195:r==='EU'?160:r==='JP'?345:45;
+      cell.style.background = `hsla(${h},80%,55%,${0.1+intensity*0.9})`;
+      cell.style.color = intensity>0.5?'rgba(0,0,0,0.85)':'rgba(255,255,255,0.7)';
+      cell.textContent = val+'M';
+      cell.title = `${genre} — ${r}: ${val}M`;
+      cell.onmouseenter=(e)=>showTip(e,genre,r,'—',`${val}M`,null);
+      cell.onmouseleave=hideTip;
+      row.appendChild(cell);
+    });
+    container.appendChild(row);
+  });
+}
+
+// G6 - Treemap
+function buildTreemap() {
+  const container = document.getElementById('treemap-container');
+  container.innerHTML = '';
+  const total = Object.values(publisherSales).reduce((a,b)=>a+b,0);
+  const sorted = Object.entries(publisherSales).sort((a,b)=>b[1]-a[1]);
+  const treeColors = ['#00f5c4','#7b6cff','#ff4c6e','#ffc842','#00d4ff','#ff8c42','#c4ff6c','#ff6cba','#6cbaff','#a0ff6c','#ff6c6c','#6cffba','#ffba6c','#ba6cff','#6cfff0','#f0ff6c','#ff6cf0','#6cb4ff','#ffda6c','#6cffda'];
+  sorted.forEach(([pub,sales],i)=>{
+    const frac = sales/total;
+    const cell = document.createElement('div');
+    cell.className = 'treemap-cell';
+    const w = Math.max(frac*1200, 50);
+    const h = Math.max(frac*800, 30);
+    cell.style.cssText = `width:${Math.min(w,240)}px;height:${Math.min(h,80)}px;background:${treeColors[i%treeColors.length]};`;
+    cell.innerHTML = `<div class="treemap-name">${pub}</div><div class="treemap-val">${sales}M</div>`;
+    cell.onmouseenter=(e)=>showTip(e,pub,'—','—',`${sales}M units`,null);
+    cell.onmouseleave=hideTip;
+    container.appendChild(cell);
+  });
+}
+
+// Publisher × Region stacked
+function buildPubRegionChart() {
+  const pubs = Object.keys(publisherSales).slice(0,10);
+  const regions = [['NA','#00d4ff'],['EU','#00f5c4'],['JP','#ff4c6e'],['Other','#ffc842']];
+  const fracs = {NA:0.49,EU:0.27,JP:0.14,Other:0.10};
+  mkChart('c-pub-region','bar',{
+    labels: pubs,
+    datasets: regions.map(([r,c])=>({
+      label:r,data:pubs.map(p=>Math.round(publisherSales[p]*fracs[r])),
+      backgroundColor:c+'99',borderRadius:3,stack:'s'
+    }))
+  },{
+    ...gridOpts,
+    plugins:{legend:{display:true,labels:{color:'#6b7294',font:{size:10},boxWidth:10}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}M`}}}
+  });
+}
+
+// G3 - Trend
+function buildTrendChart(filteredYears) {
+  const ys = filteredYears||years;
+  mkChart('c-trend','bar',{
+    labels: ys,
+    datasets:[{
+      label:'Global Sales',
+      data: ys.map(y=>yearSales[y]||0),
+      backgroundColor: ys.map((_,i)=>`hsla(${160+i*2},70%,55%,0.7)`),
+      borderRadius:4,
+      borderSkipped:false,
+    },{
+      label:'Trend',
+      data: ys.map(y=>yearSales[y]||0),
+      type:'line',
+      borderColor:'#00f5c4',
+      borderWidth:2,
+      pointRadius:3,
+      pointBackgroundColor:'#00f5c4',
+      tension:0.4,
+      fill:false,
+      yAxisID:'y'
+    }]
+  },{
+    ...gridOpts,
+    onClick:(e,els)=>{ if(els.length) drillDownYear(ys[els[0].index]); },
+    plugins:{legend:{display:true,labels:{color:'#6b7294',font:{size:10}}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.raw}M units`}}}
+  });
+}
+
+// G8 - Games per year
+function buildGamesPerYear() {
+  const yMin = parseInt(document.getElementById('yearMin').value);
+  const yMax = parseInt(document.getElementById('yearMax').value);
+  const ys = years.filter(y=>y>=yMin&&y<=yMax);
+  mkChart('c-games-year','line',{
+    labels: ys,
+    datasets:[{
+      label:'Games Released',
+      data: ys.map(y=>yearGames[y]||0),
+      borderColor:'#ffc842',
+      backgroundColor:'rgba(255,200,66,0.1)',
+      fill:true,
+      tension:0.4,
+      pointRadius:2,
+      borderWidth:2,
+    }]
+  },{
+    ...gridOpts,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw} games`}}}
+  });
+}
+
+// G10 - Platform era area
+function buildPlatformEra() {
+  const yMin = parseInt(document.getElementById('yearMin').value);
+  const yMax = parseInt(document.getElementById('yearMax').value);
+  const ys = years.filter(y=>y>=yMin&&y<=yMax);
+  const idxs = ys.map(y=>years.indexOf(y));
+  mkChart('c-platform-era','line',{
+    labels: ys,
+    datasets:[
+      {label:'Classic (≤1994)',data:idxs.map(i=>eraSales.classic[i]),borderColor:'#ff4c6e',backgroundColor:'rgba(255,76,110,0.15)',fill:true,tension:0.4,borderWidth:2,pointRadius:1},
+      {label:'Mid (1995-2004)',data:idxs.map(i=>eraSales.mid[i]),borderColor:'#ffc842',backgroundColor:'rgba(255,200,66,0.15)',fill:true,tension:0.4,borderWidth:2,pointRadius:1},
+      {label:'Modern (2005+)',data:idxs.map(i=>eraSales.modern[i]),borderColor:'#00f5c4',backgroundColor:'rgba(0,245,196,0.15)',fill:true,tension:0.4,borderWidth:2,pointRadius:1},
+    ]
+  },{
+    ...gridOpts,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw}M`}}}
+  });
+}
+
+// ══════════════════════════════════════════
+// DRILL DOWN
+// ══════════════════════════════════════════
+function drillDownYear(year) {
+  drillLevel = 'platform';
+  drillYear = year;
+  const bc = document.getElementById('drill-breadcrumb');
+  bc.innerHTML = `<span onclick="drillTo('year')">All Years</span><span class="bc-sep">›</span><span style="color:var(--accent1)">${year}</span>`;
+  // Show platform breakdown for this year
+  const platData = Object.entries(platByRegion).map(([p,v])=>({p,val:v.NA+v.EU+v.JP+v.Other}));
+  platData.sort((a,b)=>b.val-a.val);
+  mkChart('c-trend','bar',{
+    labels: platData.map(x=>x.p),
+    datasets:[{
+      label:`${year} Platform Sales`,
+      data: platData.map(x=>Math.round(x.val*(yearSales[year]||200)/Object.values(platByRegion).reduce((a,v)=>a+v.NA+v.EU+v.JP+v.Other,0))),
+      backgroundColor: COLORS,
+      borderRadius:4,borderSkipped:false
+    }]
+  },{
+    ...gridOpts,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}M units`}}}
+  });
+}
+
+function drillTo(level) {
+  drillLevel = level;
+  drillYear = null;
+  document.getElementById('drill-breadcrumb').innerHTML = `<span onclick="drillTo('year')">All Years</span>`;
+  buildTrendChart();
+}
+
+// ══════════════════════════════════════════
+// FILTERS
+// ══════════════════════════════════════════
+function applyFilters() {
+  const yMin = parseInt(document.getElementById('yearMin').value);
+  const yMax = parseInt(document.getElementById('yearMax').value);
+  document.getElementById('yearMinLabel').textContent = yMin;
+  document.getElementById('yearMaxLabel').textContent = yMax;
+
+  // Update trend chart with year range
+  const ys = years.filter(y=>y>=yMin&&y<=yMax);
+  if (drillLevel==='year') buildTrendChart(ys);
+  buildGamesPerYear();
+  buildPlatformEra();
+  buildRegionPie();
+}
+
+function resetFilters() {
+  document.getElementById('yearMin').value = 1980;
+  document.getElementById('yearMax').value = 2016;
+  document.getElementById('yearMinLabel').textContent = '1980';
+  document.getElementById('yearMaxLabel').textContent = '2016';
+  document.getElementById('platformFilter').value = 'All';
+  document.getElementById('genreFilter').value = 'All';
+  document.getElementById('publisherFilter').value = 'All';
+  document.querySelectorAll('.region-check input').forEach(c=>c.checked=true);
+  topN = 10;
+  salesView = 'global';
+  document.querySelectorAll('.topn-btn').forEach((b,i)=>b.classList.toggle('active',i===1));
+  // find sales view btns
+  buildAll();
+}
+
+function setTopN(n, btn) {
+  topN = n;
+  document.querySelectorAll('.topn-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildTop10Chart();
+}
+
+function setSalesView(v, btn) {
+  salesView = v;
+  btn.parentElement.querySelectorAll('.topn-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  buildTop10Chart();
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+function switchPage(page) {
+  document.querySelectorAll('.dashboard-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const idx = ['overview','regional','publisher','trend'].indexOf(page);
+  document.querySelectorAll('.nav-tab')[idx].classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// TOOLTIP
+// ══════════════════════════════════════════
+function showTip(e, name, platform, genre, sales, year) {
+  const t = document.getElementById('tooltip');
+  document.getElementById('tt-name').textContent = name;
+  document.getElementById('tt-platform').textContent = platform||'—';
+  document.getElementById('tt-genre').textContent = genre||'—';
+  document.getElementById('tt-year').textContent = year||'—';
+  document.getElementById('tt-sales').textContent = sales||'—';
+  t.style.left = (e.clientX+14)+'px';
+  t.style.top = (e.clientY-10)+'px';
+  t.classList.add('show');
+}
+
+function hideTip() {
+  document.getElementById('tooltip').classList.remove('show');
+}
+
+document.addEventListener('mousemove',e=>{
+  const t = document.getElementById('tooltip');
+  if(t.classList.contains('show')){
+    t.style.left=(e.clientX+14)+'px';
+    t.style.top=(e.clientY-10)+'px';
+  }
+});
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+initFilters();
+buildAll();
+</script>
+</body>
+</html>
